@@ -1,0 +1,27 @@
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.cache/
+
+# VisionGuard Databases & FAISS Indexes
+database/*.db
+database/*.faiss
+
+# Evidence, Outputs & Reports
+evidence/
+outputs/
+reports/
+
+# IDE & OS configurations
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Large ONNX models and video/image files
+models/*.onnx
+*.mp4
+target_face.jpg
+
