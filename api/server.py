@@ -867,6 +867,38 @@ def get_system_diagnostics():
         "api_latency_ms": 2.5
     }
 
+# --- MJPEG Live Video Feed Streaming Endpoint ---
+from fastapi.responses import StreamingResponse
+
+@app.get("/api/v1/surveillance/streams/video/{camera_id}", tags=["Live Surveillance Ingestion"])
+def get_video_stream(camera_id: str):
+    """Streams live MJPEG video frames for the specified camera node."""
+    global stream_registry
+    if not stream_registry:
+        raise HTTPException(status_code=400, detail="Surveillance registry not initialized.")
+        
+    worker = stream_registry.workers.get(camera_id)
+    if not worker:
+        # Fallback to check if webcam_0 is running
+        raise HTTPException(status_code=404, detail="Camera stream is not running.")
+        
+    def frame_generator():
+        while worker._running:
+            frame = None
+            with worker._frame_lock:
+                if worker._latest_frame is not None:
+                    frame = worker._latest_frame.copy()
+            
+            if frame is not None:
+                ret, jpeg = cv2.imencode('.jpg', frame)
+                if ret:
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
+            time.sleep(0.04) # approx 25 FPS
+            
+    return StreamingResponse(frame_generator(), media_type="multipart/x-mixed-replace; boundary=frame")
+
+
 
 
 

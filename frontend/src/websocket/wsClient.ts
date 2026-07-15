@@ -12,11 +12,11 @@ const getWsUrl = (): string => {
     // If absolute API URL exists, replace http/https with ws/wss
     const url = new URL(apiUrl);
     const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${protocol}//${url.host}/api/v1/alerts/ws`;
+    return `${protocol}//${url.host}/api/v1/surveillance/ws/alerts`;
   }
   // Fallback to relative path which will go through Vite dev proxy
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${protocol}//${window.location.host}/ws/api/v1/alerts/ws`;
+  return `${protocol}//${window.location.host}/ws/api/v1/surveillance/ws/alerts`;
 };
 
 export const connectWebSocket = () => {

@@ -4,6 +4,7 @@ import ProtectedRoute from '../components/ProtectedRoute';
 import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
 import MainLayout from '../layouts/MainLayout';
+import LiveSurveillance from '../pages/LiveSurveillance';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -23,8 +24,10 @@ export const AppRoutes: React.FC = () => {
         {/* Child Pages inside MainLayout grid */}
         <Route path="dashboard" element={<Dashboard />} />
         
+        {/* Live Surveillance stream player */}
+        <Route path="streams" element={<LiveSurveillance />} />
+        
         {/* Placeholders for future phases */}
-        <Route path="streams" element={<div style={{ padding: 24 }}><h2>Live Streams (Phase 10.2)</h2></div>} />
         <Route path="watchlist" element={<div style={{ padding: 24 }}><h2>Watchlist Registry (Phase 10.2)</h2></div>} />
         <Route path="tracking" element={<div style={{ padding: 24 }}><h2>Multi-Camera Tracking (Phase 10.3)</h2></div>} />
         <Route path="alerts" element={<div style={{ padding: 24 }}><h2>Alert Management (Phase 10.4)</h2></div>} />

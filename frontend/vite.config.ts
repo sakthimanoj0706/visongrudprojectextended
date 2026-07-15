@@ -19,6 +19,7 @@ export default defineConfig(({ mode }) => {
           target: wsTarget,
           ws: true,
           changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/ws/, ''),
         }
       }
     }

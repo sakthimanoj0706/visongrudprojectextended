@@ -131,7 +131,14 @@ class LiveStreamWorker:
 
     def _reader_loop(self):
         """Reader Thread: Constantly grabs frames into a shared single-frame buffer."""
-        cap = cv2.VideoCapture(self.stream_source)
+        # Convert stream source to integer if it represents a local webcam index
+        source = self.stream_source
+        try:
+            source = int(source)
+        except ValueError:
+            pass
+
+        cap = cv2.VideoCapture(source)
         
         # Update initial stream health to ONLINE
         self.event_engine.update_stream_health(self.camera_id, 30.0, "ONLINE", self.reconnect_count)
@@ -154,7 +161,7 @@ class LiveStreamWorker:
                         break
                     print(f"[STREAM RECOVER] Reconnect attempt {attempt}/{settings.MAX_RECONNECT_ATTEMPTS} on Camera {self.camera_id}...")
                     time.sleep(5)
-                    cap = cv2.VideoCapture(self.stream_source)
+                    cap = cv2.VideoCapture(source)
                     if cap.isOpened():
                         print(f"[STREAM RECOVER] Reconnect SUCCESS on Camera {self.camera_id}!")
                         self.reconnect_count += 1
