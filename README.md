@@ -97,7 +97,41 @@ python main.py timeline --target-id target_001
 
 ---
 
-## 🏗️ Tech Stack
+## 🏗️ Tech Stack & Architecture
+
+```mermaid
+graph TD
+    subgraph Frontend [Security Operations Center - React 19]
+        UI[Material UI & Framer Motion]
+        State[Zustand State Management]
+        Viz[ECharts Data Visualization]
+        UI --> State
+        State --> Viz
+    end
+
+    subgraph Backend [VisionGuard API - FastAPI]
+        Auth[JWT Role-Based Auth]
+        Routes[REST API & WebSockets]
+        Routes --> Auth
+    end
+
+    subgraph AIPipeline [AI Surveillance Pipeline]
+        Detect[YuNet Face Detection]
+        Recog[SFace Face Recognition]
+        Detect --> Recog
+    end
+
+    subgraph Database [Data Layer]
+        SQLite[(SQLite Event DB)]
+        FAISS[(FAISS Vector Search)]
+    end
+
+    Frontend <==>|HTTP/WebSocket| Backend
+    Backend --> AIPipeline
+    AIPipeline --> Database
+    Backend --> Database
+```
+
 - **AI/ML**: OpenCV, YuNet, SFace, FAISS
 - **Backend**: Python, FastAPI, SQLite
 - **Frontend**: React 19, TypeScript, Vite, Material UI (MUI), Zustand, Framer Motion, ECharts, Axios
