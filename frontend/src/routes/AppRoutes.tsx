@@ -6,6 +6,10 @@ import Dashboard from '../pages/Dashboard';
 import MainLayout from '../layouts/MainLayout';
 import LiveSurveillance from '../pages/LiveSurveillance';
 
+import Watchlist from '../pages/Watchlist';
+
+import Assistant from '../pages/Assistant';
+
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
@@ -28,10 +32,10 @@ export const AppRoutes: React.FC = () => {
         <Route path="streams" element={<LiveSurveillance />} />
         
         {/* Placeholders for future phases */}
-        <Route path="watchlist" element={<div style={{ padding: 24 }}><h2>Watchlist Registry (Phase 10.2)</h2></div>} />
+        <Route path="watchlist" element={<Watchlist />} />
         <Route path="tracking" element={<div style={{ padding: 24 }}><h2>Multi-Camera Tracking (Phase 10.3)</h2></div>} />
         <Route path="alerts" element={<div style={{ padding: 24 }}><h2>Alert Management (Phase 10.4)</h2></div>} />
-        <Route path="assistant" element={<div style={{ padding: 24 }}><h2>NL Investigation Assistant (Phase 10.4)</h2></div>} />
+        <Route path="assistant" element={<Assistant />} />
         <Route path="evidence" element={<div style={{ padding: 24 }}><h2>Evidence Archive</h2></div>} />
         <Route path="analytics" element={<div style={{ padding: 24 }}><h2>Forensic Analytics</h2></div>} />
         <Route path="cameras" element={<div style={{ padding: 24 }}><h2>Camera Management</h2></div>} />

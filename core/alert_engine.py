@@ -124,8 +124,8 @@ class AlertCoordinator:
         # 2. Mock Email dispatcher
         self._dispatch_mock_email(payload)
 
-        # 3. Mock SMS dispatcher
-        self._dispatch_mock_sms(payload)
+        # 3. SMS dispatcher
+        self._dispatch_sms(payload)
 
         return True
 
@@ -165,15 +165,31 @@ Evidence Images:
         except Exception as e:
             print(f"[ALERT DISPATCH ERROR] Failed to write mock email log: {e}")
 
-    def _dispatch_mock_sms(self, payload: Dict[str, Any]):
-        """Mocks SMS text alert dispatching to settings.MOCK_SMS_SINK."""
-        sms_message = f"[VisionGuard Alert] {payload['name']} ({payload['risk_level']}) seen on Camera {payload['camera_id']}. Severity: {payload['severity_score']}. Crop: {payload['crop_url']}"
-        sms_content = f"[{datetime.now().isoformat()}] SMS dispatched to {settings.MOCK_SMS_SINK}: {sms_message}\n"
+    def _dispatch_sms(self, payload: Dict[str, Any]):
+        """Dispatches SMS text alert via Twilio, with local file logging as fallback."""
+        from requests.auth import HTTPBasicAuth
         
-        sms_log = settings.OUTPUTS_DIR / "mock_sms_notifications.log"
+        sms_message = f"[VisionGuard Alert] {payload['name']} ({payload['risk_level']}) seen on Camera {payload['camera_id']}. Severity: {payload['severity_score']}."
+        
+        # Send via Twilio if configured
+        if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and settings.TWILIO_FROM_NUMBER:
+            url = f"https://api.twilio.com/2010-04-01/Accounts/{settings.TWILIO_ACCOUNT_SID}/Messages.json"
+            data = {
+                "From": settings.TWILIO_FROM_NUMBER,
+                "To": getattr(settings, "TARGET_PHONE_NUMBER", "+15550199"),
+                "Body": sms_message
+            }
+            try:
+                res = requests.post(url, data=data, auth=HTTPBasicAuth(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN), timeout=5)
+                print(f"[ALERT DISPATCH] Twilio SMS dispatched. Status: {res.status_code}")
+            except Exception as e:
+                print(f"[ALERT DISPATCH ERROR] Twilio SMS failed: {e}")
+                
+        # Log to local file
+        sms_content = f"[{datetime.now().isoformat()}] SMS dispatched: {sms_message}\n"
+        sms_log = settings.OUTPUTS_DIR / "sms_notifications.log"
         try:
             with open(sms_log, "a", encoding="utf-8") as f:
                 f.write(sms_content)
-            print(f"[ALERT DISPATCH] Mock SMS successfully logged: {sms_message}")
         except Exception as e:
-            print(f"[ALERT DISPATCH ERROR] Failed to write mock SMS log: {e}")
+            print(f"[ALERT DISPATCH ERROR] Failed to write SMS log: {e}")

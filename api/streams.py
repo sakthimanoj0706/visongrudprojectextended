@@ -196,7 +196,9 @@ class LiveStreamWorker:
 
     def _analyzer_loop(self):
         """Analyzer Thread: Pulls the newest frame from the shared buffer, runs tracking, ReID, and alert dispatches."""
+        analyzer_frame_counter = 0
         while self._running:
+            analyzer_frame_counter += 1
             frame = None
             with self._frame_lock:
                 if self._latest_frame is not None:
@@ -262,9 +264,13 @@ class LiveStreamWorker:
                     body_box = person["box"]
                     bx, by, bw, bh = body_box
                     
-                    # Crop body and extract ReID
-                    body_crop = frame[max(0, by):min(h, by+bh), max(0, bx):min(w, bx+bw)]
-                    reid_vector = self.reid_extractor.extract_embedding(body_crop)
+                    # Crop body and extract ReID occasionally
+                    if analyzer_frame_counter % 5 == 0:
+                        body_crop = frame[max(0, by):min(h, by+bh), max(0, bx):min(w, bx+bw)]
+                        reid_vector = self.reid_extractor.extract_embedding(body_crop)
+                        reid_list = reid_vector.tolist()
+                    else:
+                        reid_list = None
                     
                     # Link face if center of face lies within body box
                     linked_person_id = None
@@ -284,7 +290,7 @@ class LiveStreamWorker:
                     detections_for_tracker.append({
                         "box": body_box,
                         "body_box": body_box,
-                        "reid_embedding": reid_vector.tolist(),
+                        "reid_embedding": reid_list,
                         "person_id": linked_person_id,
                         "face_match": linked_match,
                         "raw_det": linked_raw_det
@@ -295,16 +301,20 @@ class LiveStreamWorker:
                     face_box = fm["face_box"]
                     body_box = estimate_body_box(face_box, frame.shape)
                     
-                    # Crop estimated body and extract ReID
-                    bx, by, bw, bh = body_box
-                    body_crop = frame[max(0, by):min(h, by+bh), max(0, bx):min(w, bx+bw)]
-                    reid_vector = self.reid_extractor.extract_embedding(body_crop)
+                    # Crop estimated body and extract ReID occasionally
+                    if analyzer_frame_counter % 5 == 0:
+                        bx, by, bw, bh = body_box
+                        body_crop = frame[max(0, by):min(h, by+bh), max(0, bx):min(w, bx+bw)]
+                        reid_vector = self.reid_extractor.extract_embedding(body_crop)
+                        reid_list = reid_vector.tolist()
+                    else:
+                        reid_list = None
                     
                     person_id = fm["match"]["person_id"] if fm["match"] else None
                     detections_for_tracker.append({
                         "box": face_box,  # Face bounding box is tracked
                         "body_box": body_box,
-                        "reid_embedding": reid_vector.tolist(),
+                        "reid_embedding": reid_list,
                         "person_id": person_id,
                         "face_match": fm["match"],
                         "raw_det": fm["raw_det"]
@@ -317,7 +327,8 @@ class LiveStreamWorker:
             start_time_str = datetime.utcnow().isoformat()
             
             for tracklet, det in active_tracklet_matches:
-                tracklet.add_reid_embedding(det["reid_embedding"])
+                if det["reid_embedding"] is not None:
+                    tracklet.add_reid_embedding(det["reid_embedding"])
                 
                 # Check if first sighting of this tracklet
                 if not tracklet.has_logged_db:
@@ -333,7 +344,7 @@ class LiveStreamWorker:
                         self.event_engine.update_tracklet_person(tracklet.tracklet_id, tracklet.person_id)
                         self._update_tracklet_memory(tracklet, start_time_str)
                     # 5.2 Try Cross-Camera ReID Match
-                    else:
+                    elif det["reid_embedding"] is not None:
                         recent_embs = self.event_engine.get_recent_reid_embeddings(limit_minutes=10.0)
                         other_embs = [r for r in recent_embs if r["camera_id"] != self.camera_id]
                         if other_embs:
@@ -425,8 +436,9 @@ class LiveStreamWorker:
 
 
                 # 5.4 Register current frame's ReID feature vector
-                reid_id = f"REID_{uuid.uuid4().hex[:8].upper()}"
-                self.event_engine.register_reid_embedding(reid_id, tracklet.tracklet_id, det["reid_embedding"])
+                if det["reid_embedding"] is not None:
+                    reid_id = f"REID_{uuid.uuid4().hex[:8].upper()}"
+                    self.event_engine.register_reid_embedding(reid_id, tracklet.tracklet_id, det["reid_embedding"])
 
                 # 5.5 If target is a watchlist target, log sighting event and trigger Alert Engine (Phase 5)
                 if tracklet.person_id and not tracklet.person_id.startswith("unknown_"):

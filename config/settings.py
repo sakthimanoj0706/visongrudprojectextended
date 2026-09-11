@@ -37,8 +37,8 @@ TOP_K = 5000
 SIMILARITY_THRESHOLD = 0.60
 
 # Video Processing Settings
-FRAME_SKIP = 0          # Set to >0 to process every N-th frame (e.g. 5) for faster search
-RESIZE_WIDTH = None     # Downscaling width for faster CPU detection (None means native)
+FRAME_SKIP = 5          # Process every 5th frame for faster CPU detection
+RESIZE_WIDTH = 640      # Downscaling width for faster CPU detection
 
 # FAISS Vector Database Settings
 VECTOR_INDEX_PATH = DB_DIR / "face_index.faiss"
@@ -58,7 +58,10 @@ MAX_RECONNECT_ATTEMPTS = 5
 # Alert Engine Settings (Phase 5)
 ALERT_RETENTION_DAYS = 30
 MOCK_EMAIL_SINK = "alerts@visionguard.local"
-MOCK_SMS_SINK = "+15550199"
+TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
+TWILIO_FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER", "")
+TARGET_PHONE_NUMBER = os.environ.get("TARGET_PHONE_NUMBER", "+15550199")
 
 # Multi-Camera Person Tracking Settings (Phase 6)
 REID_MODEL_PATH = MODELS_DIR / "person_reid_youtu_2021nov.onnx"
