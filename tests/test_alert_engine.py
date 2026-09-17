@@ -236,11 +236,11 @@ def test_mock_dispatches():
     assert email_log.exists()
     assert "To: alerts@visionguard.local" in email_log.read_text(encoding="utf-8")
     
-    # Trigger mock SMS
-    coordinator._dispatch_mock_sms(payload)
-    sms_log = settings.OUTPUTS_DIR / "mock_sms_notifications.log"
+    # Trigger SMS dispatcher
+    coordinator._dispatch_sms(payload)
+    sms_log = settings.OUTPUTS_DIR / "sms_notifications.log"
     assert sms_log.exists()
-    assert "dispatched to +15550199" in sms_log.read_text(encoding="utf-8")
+    assert "SMS dispatched" in sms_log.read_text(encoding="utf-8")
 
 def test_false_positive_analytics():
     """Verify calculations of false positive rates and aggregates by camera/person."""

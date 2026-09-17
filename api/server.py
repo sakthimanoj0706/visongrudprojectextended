@@ -368,6 +368,15 @@ def trigger_alert(payload: AlertCreate):
     if not success:
         raise HTTPException(status_code=500, detail="Failed to log alert event in database")
 
+    # Also create an alert record so it appears in alerts list/dashboard
+    event_engine.create_alert(
+        alert_id=alert_id,
+        event_id=alert_id,
+        status="ACTIVE",
+        severity_score=1.0,
+        evidence_path=None
+    )
+
     return AlertResponse(
         alert_id=alert_id,
         person_id=payload.person_id,
@@ -899,6 +908,65 @@ def get_video_stream(camera_id: str):
     return StreamingResponse(frame_generator(), media_type="multipart/x-mixed-replace; boundary=frame")
 
 
+# --- Missing Dashboard Endpoints ---
+
+@app.get("/api/v1/persons", tags=["Watchlist Management"], dependencies=[Depends(RoleChecker(["Admin", "Operator", "Investigator"]))])
+def list_persons():
+    """Returns all registered persons in the watchlist."""
+    global event_engine
+    if not event_engine:
+        event_engine = EventEngine(settings.DB_PATH)
+    try:
+        with event_engine._get_connection() as conn:
+            cursor = conn.execute("SELECT person_id, name, category, risk_level, created_at FROM persons ORDER BY created_at DESC;")
+            return [dict(row) for row in cursor.fetchall()]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list persons: {e}")
+
+
+@app.get("/api/v1/surveillance/streams/active", tags=["Live Surveillance Ingestion"], dependencies=[Depends(RoleChecker(["Admin", "Operator", "Investigator"]))])
+def list_active_streams_count():
+    """Returns list of currently active stream workers (alias for Dashboard)."""
+    global stream_registry
+    if not stream_registry:
+        return []
+    return stream_registry.list_active_streams()
+
+
+@app.get("/api/v1/alerts/list", tags=["Alert Operations"], dependencies=[Depends(RoleChecker(["Admin", "Operator", "Investigator"]))])
+def list_all_alerts(status: Optional[str] = None, limit: int = 100):
+    """Returns all alerts (for Dashboard GET /api/v1/alerts consumption)."""
+    global event_engine
+    if not event_engine:
+        event_engine = EventEngine(settings.DB_PATH)
+    return event_engine.get_alerts(status=status, limit=limit)
+
+
+@app.get("/api/v1/events", tags=["Intelligence timeline"], dependencies=[Depends(RoleChecker(["Admin", "Operator", "Investigator"]))])
+def list_events(skip: int = 0, limit: int = 10):
+    """Returns paginated sighting events from the database."""
+    global event_engine
+    if not event_engine:
+        event_engine = EventEngine(settings.DB_PATH)
+    try:
+        with event_engine._get_connection() as conn:
+            cursor = conn.execute("""
+                SELECT e.event_id, e.person_id, p.name as person_name, e.camera_id, 
+                       e.timestamp, e.confidence, e.video_source
+                FROM events e
+                LEFT JOIN persons p ON e.person_id = p.person_id
+                ORDER BY e.timestamp DESC
+                LIMIT ? OFFSET ?;
+            """, (limit, skip))
+            events = [dict(row) for row in cursor.fetchall()]
+            
+            # Get total count
+            count_cursor = conn.execute("SELECT COUNT(*) FROM events;")
+            total = count_cursor.fetchone()[0]
+            
+        return {"events": events, "total": total}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list events: {e}")
 
 
 

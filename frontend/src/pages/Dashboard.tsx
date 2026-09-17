@@ -121,7 +121,7 @@ export const Dashboard: React.FC = () => {
         const watchlistRes = await apiClient.get('/api/v1/persons');
         
         // 5. Fetch Alerts to count critical ones
-        const alertsRes = await apiClient.get('/api/v1/alerts');
+        const alertsRes = await apiClient.get('/api/v1/alerts/list');
         const activeAlerts = alertsRes.data.filter((a: any) => a.status === 'ACTIVE');
         const criticalCount = activeAlerts.filter((a: any) => a.severity_score >= 0.8).length;
 
@@ -133,7 +133,7 @@ export const Dashboard: React.FC = () => {
           activeTracklets: trackletsRes.data.length,
           watchlistSize: watchlistRes.data.length,
           criticalAlertsCount: criticalCount,
-          todaysDetections: activeAlerts.length * 4 + 18 // realistic aggregate
+          todaysDetections: alertsRes.data.length
         });
       } catch (err) {
         console.error("Dashboard fetch metrics failed:", err);
